@@ -5,9 +5,11 @@ import { Grid } from '@nextui-org/react';
 
 import usePiggyBankContract from '../../hooks/usePiggyBankContract'
 import { formatBalanceEth } from '../../utils/format';
+
 // custom components
 import CardTrasaction from '../../components/cardTransaction';
-import TransactionDetail from "../../components/transactionDetail";
+import ListTransactions from "../../components/listTransactions";
+import ContactForm from '../../components/contactForm';
 
 export default function Home() {
   const { active, account, library } = useWeb3React();
@@ -21,17 +23,24 @@ export default function Home() {
   const [ transactions, setTransactions ] = useState([]);
 
   const getBalance = async () => {
-    const responseBalance = await piggyBank?.methods?.getBalance().call();
+    const responseBalance = await piggyBank?.methods?.getBalance().call({
+      from: account,
+    });
 
     setBalance(formatBalanceEth(responseBalance));
   }
 
   const getTransactions = async () => {
-    const responseTransactions = await piggyBank?.methods?.getTransactions().call();
-    const mappingTransactions = responseTransactions?.map(({value, typeTransaction, owner}) => ({
-        value: `${formatBalanceEth(value)}`,
+    const responseTransactions = await piggyBank?.methods?.getTransactions().call(
+      {
+        from: account,
+      }
+    );
+
+    const mappingTransactions = responseTransactions?.map(({value, typeTransaction, depositorAddress}) => ({
+        value: formatBalanceEth(value),
         typeTransaction,
-        owner
+        depositorAddress
     }));
 
     setTransactions(mappingTransactions);
@@ -45,9 +54,13 @@ export default function Home() {
           value: library.utils.toWei(depositAmount, 'ether')
       }).on('transactionHash', (txHash) => {
           setIsTrasaction(false);
-          toast.success(`transaction sent ${txHash}`,{
+          toast.success(<a href={`https://rinkeby.etherscan.io/tx/${txHash}`} target="_blank">
+            transaction sent (click to see detail)
+          </a>,{
             autoClose: 10000,
+            closeOnClick: false,
           });
+  
 
       })
       .on('receipt', () => {
@@ -63,17 +76,24 @@ export default function Home() {
       })
   }
 
-
   const withdraw = () => {
-    setIsTrasaction(true)
+    setIsTrasaction(true);
+    
+    if(withdrawAmount > balance){
+      toast.error('non-sufficient funds on your Piggy Bank');
+      setIsTrasaction(false);
+      return;
+    }
     piggyBank.methods.withdraw(library.utils.toWei(withdrawAmount, 'ether')).send({
         from: account,
     }).on('transactionHash', (txHash) => {
         setIsTrasaction(false);
-        toast.success(`transaction sent ${txHash}`,{
+        toast.success(<a href={`https://rinkeby.etherscan.io/tx/${txHash}`} target="_blank">
+          transaction sent (click to see detail)
+        </a>,{
           autoClose: 10000,
+          closeOnClick: false,
         });
-
     })
     .on('receipt', () => {
       setIsTrasaction(false);
@@ -88,24 +108,22 @@ export default function Home() {
     })
   }
 
-
   useEffect(() => { 
     getBalance()
-  }, [])
+  }, [active, account])
 
   useEffect(() => {
     getTransactions()
-  }, [balance])
+  }, [balance, active, account])
 
   if (!active) return <h2>please connect your Wallet</h2>;
 
-  console.log('withdraw2 ', withdrawAmount)
   return (
     <>
     <Grid.Container gap={2} justify="center"> 
         <Grid>  
             <>    
-                <h3>Balance on your Piggy Bank {balance}</h3>
+                <h3>Balance on your Piggy Bank {(isNaN(balance) || !balance) ? 0 : balance}</h3>
             </>
         </Grid>  
       </Grid.Container>
@@ -127,15 +145,11 @@ export default function Home() {
             loading={isTransaction}
           />
         </Grid> 
-      </Grid.Container>
+        {
+          (transactions?.length > 0) && <ListTransactions transactions={transactions}/>
+        }
 
-        <Grid.Container gap={2} justify="center">
-            {transactions?.map((transaction, index) => 
-                <Grid xs={8} key={index}>
-                    <TransactionDetail {...transaction}/>
-                </Grid>
-            )} 
-        </Grid.Container>
+      </Grid.Container>
     </>
   );
 }

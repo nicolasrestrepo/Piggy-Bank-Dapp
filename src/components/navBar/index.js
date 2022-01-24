@@ -14,7 +14,6 @@ export default function NavBar({
     return(
         <Container>
             <h1>Piggy Bank</h1>
-
         <>
             { active ?
                 <WapperInfoNavBar>

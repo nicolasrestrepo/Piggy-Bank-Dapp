@@ -14,6 +14,7 @@ function CardTransaction({title, handleClick, handleChange, loading}) {
         <InputWrapper>
           <img src={LogoEth} width="50px" />
           <Input 
+            type="number"
             onChange={(e) => handleChange(e.target.value)}
             bordered 
             labelPlaceholder="amount" 

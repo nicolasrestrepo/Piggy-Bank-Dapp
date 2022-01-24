@@ -1,12 +1,20 @@
 import { UnsupportedChainIdError, useWeb3React } from '@web3-react/core';
 import { useCallback, useEffect, useState } from 'react';
-import { connector } from '../config/web3';
-import { formatBalanceEth } from '../utils/format';
-import useTruncatedAddress from '../hooks/useTruncatedAddress';
-import NavBar from '../components/navBar/navBar';
+import { connector } from '../../config/web3';
+import { formatBalanceEth } from '../../utils/format';
+import useTruncatedAddress from '../../hooks/useTruncatedAddress';
+import { Container } from './styles';
+// components
+import ContactForm from '../../components/contactForm';
+import Footer from '../../components/footer'
+import NavBar from '../../components/navBar';
 
 function MainLayout({ children }) {
+  // wallet balance
   const [ balance, setBalance ] = useState(0);
+
+  const [visible, setVisible] = useState(false);
+
 
   const { active, activate, deactivate, account, error, library } = useWeb3React();
 
@@ -38,11 +46,8 @@ function MainLayout({ children }) {
     if(active) getBalance()
   }, [active, getBalance]);
 
-  console.log('isUnsupportedChain', isUnsupportedChain);
-
   return ( 
-    <>
-
+    <Container>
         <NavBar 
             address={truncatedAddress}
             isUnsupportedChain={isUnsupportedChain}
@@ -51,9 +56,17 @@ function MainLayout({ children }) {
             disconnect={disconnect}
             active={active}
         />
-        
+        <ContactForm 
+            isVisible={visible}
+            handlerClose={() => setVisible(false)}
+        />
+
         {children}
-    </>
+
+        <Footer 
+            handlerClick={() => setVisible(true)}
+        />
+    </Container>
   );
 }
 
